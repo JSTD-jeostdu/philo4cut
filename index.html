@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>철학네컷</title>
+<meta name="description" content="철학자 픽셀 캐릭터와 함께 찍는 네컷 사진관">
+<meta name="theme-color" content="#FFF6E5">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css">
+<style>
+:root{--bg:#FFF6E5;--ink:#2B2340;--sub:#7A6F8A;--accent:#FF7A59;--card:#fff;--line:#E9DCC4}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+body{min-height:100dvh}
+.pixel{font-family:"Galmuri11","Galmuri9",monospace}
+.app{max-width:480px;margin:0 auto;padding:16px 16px calc(24px + env(safe-area-inset-bottom))}
+.screen{display:none}.screen.on{display:block}
+h1{font-size:40px;margin:24px 0 4px;text-align:center}
+.sub{color:var(--sub);text-align:center;margin:0 0 20px;font-size:15px}
+.btn{display:block;width:100%;border:2px solid var(--ink);background:var(--card);color:var(--ink);font-size:17px;font-weight:700;padding:14px 8px;border-radius:14px;margin:10px 0;box-shadow:0 4px 0 var(--ink);cursor:pointer;font-family:inherit}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.btn.primary{background:var(--accent);color:#fff}
+.btn:disabled{opacity:.4;pointer-events:none}
+.row{display:flex;gap:10px}.row .btn{flex:1}
+.notice{background:var(--card);border:2px dashed var(--line);border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.7;margin:16px 0}
+.hero{display:flex;justify-content:center;gap:4px;margin:12px 0}
+.hero img{width:60px;image-rendering:pixelated}
+footer{text-align:center;font-size:12px;color:var(--sub);margin-top:28px;line-height:1.7}
+footer a{color:var(--sub)}
+.layouts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+.lay{border:2px solid var(--line);background:var(--card);border-radius:16px;padding:16px 8px;text-align:center;cursor:pointer;font-weight:700}
+.lay.sel{border-color:var(--accent);box-shadow:0 0 0 3px rgba(255,122,89,.25)}
+.mini{display:grid;gap:4px;margin:0 auto 10px;justify-content:center}
+.mini i{background:var(--line);border-radius:3px;display:block}
+.mini.l14{grid-template-columns:44px}.mini.l14 i{height:30px}
+.mini.l22{grid-template-columns:40px 40px}.mini.l22 i{height:52px}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.topbar b{font-size:20px}
+.icon{border:2px solid var(--ink);background:var(--card);border-radius:12px;width:44px;height:44px;font-size:20px;cursor:pointer;color:var(--ink)}
+.dots{display:flex;gap:6px;justify-content:center;margin-bottom:10px}
+.dots span{width:10px;height:10px;border-radius:3px;background:var(--line)}
+.dots span.done{background:var(--ink)}.dots span.cur{background:var(--accent)}
+#stage{position:relative;width:100%;background:#222;border-radius:16px;overflow:hidden;touch-action:none;border:3px solid var(--ink);user-select:none;-webkit-user-select:none}
+#stage video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#stage video.mirror{transform:scaleX(-1)}
+.sticker{position:absolute;transform:translate(-50%,-50%);cursor:grab}
+.sticker img{width:100%;display:block;image-rendering:pixelated;pointer-events:none;-webkit-user-drag:none}
+.sticker.flip img{transform:scaleX(-1)}
+.sticker.sel{outline:2px dashed #fff;outline-offset:3px;border-radius:6px}
+.sticker .tag{position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);background:rgba(0,0,0,.6);color:#fff;font-size:11px;padding:1px 6px;border-radius:8px;white-space:nowrap;pointer-events:none}
+#count{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:96px;color:#fff;text-shadow:0 4px 0 #000;pointer-events:none}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s}
+#camMsg{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;color:#fff;padding:20px;font-size:14px;line-height:1.6}
+.hint{font-size:12px;color:var(--sub);text-align:center;margin:8px 0}
+.picker{display:flex;gap:8px;overflow-x:auto;padding:6px 2px 10px;scrollbar-width:none}
+.picker::-webkit-scrollbar{display:none}
+.ph{flex:0 0 auto;width:66px;background:var(--card);border:2px solid var(--line);border-radius:12px;padding:6px 2px;text-align:center;font-size:11px;cursor:pointer;color:var(--ink);font-family:inherit}
+.ph img{width:40px;image-rendering:pixelated;display:block;margin:0 auto 2px}
+.shots{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:8px 0;min-height:10px}
+.shots img{width:100%;border-radius:6px;border:3px solid transparent;cursor:pointer;display:block}
+.shots img.sel{border-color:var(--accent)}
+.label{font-size:13px;font-weight:700;margin-top:10px}
+#preview{width:100%;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.15);display:block;margin:12px 0}
+.themes{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.chip{border:2px solid var(--line);background:var(--card);border-radius:20px;padding:8px 14px;font-weight:700;cursor:pointer;font-family:inherit;font-size:14px;color:var(--ink)}
+.chip.sel{border-color:var(--accent)}
+#toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9;white-space:nowrap}
+#toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div class="app">
+
+<section id="s-start" class="screen on">
+  <h1 class="pixel">철학네컷</h1>
+  <p class="sub">철학자와 함께 찍는 네컷 사진관</p>
+  <div class="hero" id="hero"></div>
+  <div class="notice">📷 카메라 사용을 허용해 주세요.<br>🔒 사진은 기기 밖으로 나가지 않아요. 저장 버튼을 누를 때만 내 폰에 저장돼요.<br>🤝 친구 사진은 동의를 받고 찍어요.</div>
+  <button class="btn primary" id="goLayout">시작하기 📸</button>
+  <button class="btn" id="shareLink">🔗 앱 링크 공유</button>
+</section>
+
+<section id="s-layout" class="screen">
+  <div class="topbar"><button class="icon" data-back="s-start">←</button><b>배치 고르기</b><span style="width:44px"></span></div>
+  <div class="layouts">
+    <div class="lay" data-lay="1x4"><div class="mini l14"><i></i><i></i><i></i><i></i></div>1×4 세로</div>
+    <div class="lay" data-lay="2x2"><div class="mini l22"><i></i><i></i><i></i><i></i></div>2×2 격자</div>
+  </div>
+  <button class="btn primary" id="goShoot">촬영하러 가기 →</button>
+</section>
+
+<section id="s-shoot" class="screen">
+  <div class="topbar"><button class="icon" id="flipCam" title="카메라 전환">🔄</button><b id="cutTitle">컷 1 / 4</b><button class="icon" id="soundBtn" title="효과음">🔊</button></div>
+  <div class="dots" id="dots"></div>
+  <div id="stage"><video id="video" playsinline muted autoplay></video><div id="flash"></div><div id="count" class="pixel"></div><div id="camMsg"></div></div>
+  <p class="hint">철학자를 눌러 추가 · 드래그로 이동 · 두 손가락(또는 휠)로 크기 조절 · 밖으로 끌면 삭제</p>
+  <div class="picker" id="picker"></div>
+  <div class="row"><button class="btn" id="flipSt" style="flex:0 0 32%">↔ 반전</button><button class="btn primary" id="shoot">📸 촬영</button></div>
+  <div class="label" id="shotLabel">이 컷에 쓸 사진을 골라요 (0/6)</div>
+  <div class="shots" id="shots"></div>
+  <div class="row"><button class="btn" id="prevCut">← 이전</button><button class="btn primary" id="nextCut" disabled>다음 컷 →</button></div>
+</section>
+
+<section id="s-result" class="screen">
+  <div class="topbar"><button class="icon" id="backShoot">←</button><b>완성!</b><span style="width:44px"></span></div>
+  <div class="themes" id="themes"></div>
+  <img id="preview" alt="완성된 철학네컷">
+  <p class="hint">저장이 안 되면 사진을 길게 눌러 저장해 주세요</p>
+  <div class="row"><button class="btn primary" id="save">💾 PNG 저장</button><button class="btn" id="share">📤 공유</button></div>
+  <button class="btn" id="restart">🔄 다시 찍기</button>
+</section>
+
+<footer>과학네컷에서 영감을 받음 · <a href="https://sciencessaem.com/science4cut/" target="_blank" rel="noopener">과학네컷 바로가기</a><br>ⓒ 철학네컷</footer>
+</div>
+<div id="toast"></div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const CUTS = 4, MAX_SHOTS = 6, MAX_ST = 3, BASE = 0.28; // BASE: 캐릭터 기본 너비(컷 너비 대비)
+
+// ===== 철학자 데이터 (2단계에서 스프라이트·말풍선 연결) =====
+const PH = [
+  {id:'confucius', name:'공자', robe:'#B23A48', hair:'#2B2B2B', hat:'#3A3A3A', beard:'#2B2B2B',
+   quotes:[{t:'배우고 때때로 익히면 기쁘지 아니한가', s:'『논어』 학이편'},{t:'내가 원하지 않는 일은 남에게도 하지 마라', s:'『논어』 안연편'}]},
+  {id:'mencius', name:'맹자', robe:'#3B6EA5', hair:'#2B2B2B', hat:'#3A3A3A', beard:'#2B2B2B', short:true,
+   quotes:[{t:'남의 아픔을 안타까워하는 마음이 인(仁)의 시작이야', s:'『맹자』 공손추 상'},{t:'백성이 가장 귀하고, 임금은 가볍다', s:'『맹자』 진심 하'}]},
+  {id:'buddha', name:'석가모니', robe:'#E39B2D', hair:'#1F2A44', curly:true,
+   quotes:[{t:'하늘 위 하늘 아래 오직 나 홀로 존귀하다', s:'탄생 설화(『장아함경』 「대본경」 등)'},{t:'너 자신을 등불로 삼아라', s:'『대반열반경』'}]},
+  {id:'laozi', name:'노자', robe:'#6A8E4E', hair:'#EDEDED', beard:'#EDEDED',
+   quotes:[{t:'가장 좋은 것은 물과 같다', s:'『도덕경』 8장'},{t:'천 리 길도 한 걸음부터', s:'『도덕경』 64장(통용 의역)'}]},
+  {id:'zhuangzi', name:'장자', robe:'#7FB7BE', hair:'#3B2F2F', bfly:true,
+   quotes:[{t:'내가 나비 꿈을 꾼 걸까, 나비가 내 꿈을 꾼 걸까?', s:'『장자』 제물론'},{t:'우물 안 개구리에게 바다를 말할 수 없지', s:'『장자』 추수편'}]},
+  {id:'socrates', name:'소크라테스', robe:'#F2F2F2', hair:'#D6D6D6', bald:true, beard:'#D6D6D6',
+   quotes:[{t:'나는 내가 모른다는 것을 알아', s:'플라톤, 『소크라테스의 변명』 21d(취지 요약)'},{t:'성찰하지 않는 삶은 살 가치가 없다', s:'플라톤, 『소크라테스의 변명』 38a'}]},
+  {id:'plato', name:'플라톤', robe:'#5B7DB1', hair:'#8A6E4B', beard:'#8A6E4B',
+   quotes:[{t:'동굴 밖으로 나가 진짜 빛을 봐', s:'『국가』 7권(요약)'},{t:'철학자가 다스려야 나라의 불행이 끝난다', s:'『국가』 5권'}]},
+  {id:'aristotle', name:'아리스토텔레스', robe:'#8E6CB0', hair:'#5A4632', beard:'#5A4632', short:true,
+   quotes:[{t:'인간은 사회적 동물이다', s:'『정치학』 1권(통용 번역)'},{t:'제비 한 마리가 왔다고 봄이 오는 건 아니야', s:'『니코마코스 윤리학』 1권'}]},
+  {id:'kant', name:'칸트', robe:'#2F4858', hair:'#F0F0F0',
+   quotes:[{t:'내 위의 별이 빛나는 하늘, 내 안의 도덕법칙', s:'『실천이성비판』 맺음말'},{t:'사람을 수단이 아닌 목적으로 대하라', s:'『도덕형이상학 정초』 2장(요약)'}]},
+  {id:'mill', name:'밀', robe:'#222222', hair:'#6B5440', bald:true,
+   quotes:[{t:'만족한 바보보다 불만족한 소크라테스가 낫다', s:'『공리주의』 2장'},{t:'내 몸과 마음의 주인은 나야', s:'『자유론』 1장(의역)'}]},
+  {id:'rawls', name:'롤스', robe:'#4A5568', hair:'#7A7A7A', tie:true,
+   quotes:[{t:'정의는 사회 제도의 첫 번째 덕이다', s:'『정의론』 1장'},{t:'무지의 베일을 쓰고 공정하게 정해 보자', s:'『정의론』 3장(요약)'}]}
+];
+
+const THEMES = {
+  cream:{name:'크림', bg:'#FFF6E5', ink:'#2B2340', sub:'#7A6F8A', deco:'#FF7A59'},
+  night:{name:'밤하늘', bg:'#1E2340', ink:'#FFF6E5', sub:'#AFA8C8', deco:'#F4D03F'},
+  mint:{name:'민트', bg:'#DFF3EA', ink:'#1F3B33', sub:'#5C7A70', deco:'#3BAA85'},
+  berry:{name:'딸기', bg:'#FFE3EA', ink:'#4A2333', sub:'#946273', deco:'#FF5C8A'}
+};
+
+// ===== 임시 픽셀 캐릭터 (2단계에서 AI 생성 스프라이트로 교체) =====
+function drawAvatar(p){
+  const c = document.createElement('canvas'); c.width = 16; c.height = 20;
+  const x = c.getContext('2d');
+  const r = (a,b,w,h,col) => { x.fillStyle = col; x.fillRect(a,b,w,h); };
+  const skin = '#F2C9A0';
+  r(3,11,10,7,p.robe); r(2,12,1,4,skin); r(13,12,1,4,skin);
+  if (p.tie){ r(7,11,2,1,'#fff'); r(7,12,2,4,'#C0392B'); }
+  r(5,18,2,2,'#3A2E2E'); r(9,18,2,2,'#3A2E2E');
+  r(4,3,8,8,skin);
+  if (p.bald){ r(3,5,1,3,p.hair); r(12,5,1,3,p.hair); }
+  else if (p.curly){ r(4,2,8,2,p.hair); r(3,3,1,3,p.hair); r(12,3,1,3,p.hair); r(6,1,4,1,p.hair); }
+  else { r(4,2,8,2,p.hair); r(3,3,1,5,p.hair); r(12,3,1,5,p.hair); }
+  if (p.hat){ r(5,0,6,2,p.hat); r(4,2,8,1,p.hat); }
+  r(6,6,1,1,'#222'); r(9,6,1,1,'#222');
+  r(5,8,1,1,'#F4A3A3'); r(10,8,1,1,'#F4A3A3');
+  if (p.beard){ if (p.short) r(6,9,4,2,p.beard); else { r(5,9,6,2,p.beard); r(6,11,4,2,p.beard); } }
+  else r(7,9,2,1,'#B5654A');
+  if (p.bfly){ r(12,0,1,1,'#F4D03F'); r(14,0,1,1,'#F4D03F'); r(13,1,1,1,'#333'); r(12,2,1,1,'#F4D03F'); r(14,2,1,1,'#F4D03F'); }
+  const big = document.createElement('canvas'); big.width = 160; big.height = 200;
+  const bx = big.getContext('2d'); bx.imageSmoothingEnabled = false; bx.drawImage(c,0,0,160,200);
+  return big;
+}
+const AV = {};
+PH.forEach(p => { const cv = drawAvatar(p); AV[p.id] = {canvas:cv, url:cv.toDataURL('image/png')}; });
+
+// ===== 상태 =====
+const S = {layout:'1x4', cutsLayout:null, theme:'cream', cut:0, cuts:[], facing:'user', sound:true, stream:null, selSt:null, busy:false, canvas:null, blob:null};
+try { S.sound = localStorage.getItem('p4c_sound') !== '0'; const l = localStorage.getItem('p4c_layout'); if (l === '1x4' || l === '2x2') S.layout = l; } catch(e){}
+function store(k,v){ try { localStorage.setItem(k,v); } catch(e){} }
+let SID = 1;
+function resetCuts(){ S.cuts = Array.from({length:CUTS}, () => ({shots:[], sel:-1, stickers:[]})); S.cut = 0; S.selSt = null; S.cutsLayout = S.layout; }
+resetCuts();
+
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const p2 = n => String(n).padStart(2,'0');
+const ratio = () => S.layout === '1x4' ? 4/3 : 3/4; // 컷의 가로/세로
+const capSize = () => S.layout === '1x4' ? [1200,900] : [900,1200];
+function toast(m){ const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('on'), 1800); }
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
+  window.scrollTo(0,0);
+  if (id === 's-shoot') startCam(); else stopCam();
+}
+
+// ===== 소리 =====
+let AC = null;
+function ac(){ try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); return AC; } catch(e){ return null; } }
+function beep(f,d){ if (!S.sound) return; const a = ac(); if (!a) return; const o = a.createOscillator(), g = a.createGain(); o.type = 'square'; o.frequency.value = f; g.gain.value = .05; o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime + d); }
+function shutter(){ beep(1200,.05); setTimeout(() => beep(800,.07), 60); }
+
+// ===== 카메라 =====
+async function startCam(){
+  const v = $('#video'); $('#camMsg').style.display = 'none';
+  if (S.stream) return;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ camErr(); return; }
+  try {
+    S.stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:S.facing, width:{ideal:1920}, height:{ideal:1080}}, audio:false});
+    v.srcObject = S.stream; v.classList.toggle('mirror', S.facing === 'user');
+    await v.play().catch(() => {});
+  } catch(e){ S.stream = null; camErr(); }
+}
+function camErr(){
+  const m = $('#camMsg');
+  m.innerHTML = '카메라를 켤 수 없어요 😢<br>카메라 권한을 허용했는지 확인해 주세요.<br><br>카카오톡·인스타그램 안에서 열었다면<br>메뉴에서 <b>다른 브라우저로 열기</b>를 눌러 주세요.';
+  m.style.display = 'flex';
+}
+function stopCam(){ if (S.stream){ S.stream.getTracks().forEach(t => t.stop()); S.stream = null; } }
+
+// ===== 스티커 =====
+const stage = $('#stage');
+function stickerEl(s){ return stage.querySelector('.sticker[data-id="' + s.id + '"]'); }
+function placeEl(s){ const el = stickerEl(s); if (!el) return; el.style.left = (s.x*100)+'%'; el.style.top = (s.y*100)+'%'; el.style.width = (BASE*s.s*100)+'%'; el.classList.toggle('flip', s.flip); }
+function markSel(){ stage.querySelectorAll('.sticker').forEach(el => el.classList.toggle('sel', !!S.selSt && el.dataset.id === String(S.selSt.id))); }
+function renderStickers(){
+  stage.querySelectorAll('.sticker').forEach(e => e.remove());
+  S.cuts[S.cut].stickers.forEach(s => {
+    const p = PH.find(q => q.id === s.pid);
+    const el = document.createElement('div'); el.className = 'sticker'; el.dataset.id = s.id;
+    const im = new Image(); im.src = AV[s.pid].url; im.alt = p.name; el.appendChild(im);
+    const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = p.name; el.appendChild(tag);
+    stage.insertBefore(el, $('#flash'));
+    placeEl(s);
+  });
+  markSel();
+}
+function addSticker(pid){
+  const list = S.cuts[S.cut].stickers;
+  if (list.length >= MAX_ST){ toast('한 컷에 철학자는 3명까지예요'); return; }
+  const pos = [[.78,.62],[.22,.62],[.5,.4]][list.length];
+  const s = {id:SID++, pid, x:pos[0], y:pos[1], s:1, flip:false};
+  list.push(s); S.selSt = s; renderStickers();
+}
+function checkOut(s){
+  if (!s) return;
+  if (s.x < -0.02 || s.x > 1.02 || s.y < -0.02 || s.y > 1.02){
+    const list = S.cuts[S.cut].stickers; const i = list.indexOf(s); if (i >= 0) list.splice(i,1);
+    S.selSt = null; renderStickers(); toast('철학자를 뺐어요');
+  }
+}
+// 드래그·핀치 (두 번째 손가락은 무대 어디에 닿아도 됨)
+const P = new Map(); let act = null, st0 = null;
+function snap(){ const a = [...P.values()]; return {a:a.map(p => ({...p})), x:act.x, y:act.y, s:act.s, d:a.length > 1 ? Math.hypot(a[0].x-a[1].x, a[0].y-a[1].y) : 0}; }
+stage.addEventListener('pointerdown', e => {
+  const el = e.target.closest('.sticker');
+  if (P.size === 0){
+    if (!el){ S.selSt = null; markSel(); return; }
+    act = S.cuts[S.cut].stickers.find(s => String(s.id) === el.dataset.id) || null;
+    S.selSt = act; markSel();
+  }
+  if (!act) return;
+  e.preventDefault();
+  try { stage.setPointerCapture(e.pointerId); } catch(_){}
+  P.set(e.pointerId, {x:e.clientX, y:e.clientY}); st0 = snap();
+});
+stage.addEventListener('pointermove', e => {
+  if (!act || !P.has(e.pointerId)) return;
+  P.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  const r = stage.getBoundingClientRect(), a = [...P.values()];
+  if (a.length === 1){
+    act.x = clamp(st0.x + (a[0].x - st0.a[0].x)/r.width, -.3, 1.3);
+    act.y = clamp(st0.y + (a[0].y - st0.a[0].y)/r.height, -.3, 1.3);
+  } else if (st0.d){
+    act.s = clamp(st0.s * Math.hypot(a[0].x-a[1].x, a[0].y-a[1].y) / st0.d, .4, 3);
+  }
+  placeEl(act);
+});
+function endP(e){ if (!P.has(e.pointerId)) return; P.delete(e.pointerId); if (P.size === 0){ const s = act; act = null; checkOut(s); } else st0 = snap(); }
+stage.addEventListener('pointerup', endP);
+stage.addEventListener('pointercancel', endP);
+stage.addEventListener('wheel', e => { if (!S.selSt) return; e.preventDefault(); S.selSt.s = clamp(S.selSt.s * (e.deltaY < 0 ? 1.08 : .92), .4, 3); placeEl(S.selSt); }, {passive:false});
+
+// ===== 컷 렌더링 (사진 + 캐릭터) =====
+function renderCut(shot, W, H){
+  const c = document.createElement('canvas'); c.width = Math.round(W); c.height = Math.round(H);
+  const x = c.getContext('2d');
+  x.drawImage(shot.photo, 0, 0, c.width, c.height);
+  x.imageSmoothingEnabled = false;
+  shot.stickers.forEach(s => {
+    const w = BASE * s.s * c.width, h = w * 1.25;
+    x.save(); x.translate(s.x * c.width, s.y * c.height); if (s.flip) x.scale(-1,1);
+    x.drawImage(AV[s.pid].canvas, -w/2, -h/2, w, h); x.restore();
+  });
+  return c;
+}
+
+// ===== 촬영 =====
+async function doShoot(){
+  if (S.busy) return;
+  const cut = S.cuts[S.cut];
+  if (cut.shots.length >= MAX_SHOTS){ toast('한 컷에 최대 6장까지 찍을 수 있어요'); return; }
+  const v = $('#video');
+  if (!S.stream || !v.videoWidth){ toast('카메라가 아직 준비되지 않았어요'); return; }
+  S.busy = true; updateShoot(); ac();
+  const cnt = $('#count'); cnt.style.display = 'flex';
+  for (let i = 3; i > 0; i--){ cnt.textContent = i; beep(660,.08); await wait(1000); }
+  cnt.style.display = 'none';
+  const [W,H] = capSize(), R = W/H;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  const vw = v.videoWidth, vh = v.videoHeight;
+  let sw = vw, sh = vh, sx = 0, sy = 0;
+  if (vw/vh > R){ sw = vh*R; sx = (vw-sw)/2; } else { sh = vw/R; sy = (vh-sh)/2; }
+  if (S.facing === 'user'){ x.translate(W,0); x.scale(-1,1); }
+  x.drawImage(v, sx, sy, sw, sh, 0, 0, W, H);
+  shutter();
+  const f = $('#flash'); f.style.opacity = 1; setTimeout(() => f.style.opacity = 0, 120);
+  const shot = {photo:c, stickers:cut.stickers.map(s => ({...s}))};
+  shot.thumb = renderCut(shot, 240, 240/R).toDataURL('image/jpeg', .8);
+  cut.shots.push(shot); cut.sel = cut.shots.length - 1;
+  S.busy = false; updateShoot();
+}
+
+function updateShoot(){
+  const cut = S.cuts[S.cut];
+  $('#cutTitle').textContent = '컷 ' + (S.cut+1) + ' / ' + CUTS;
+  $('#dots').innerHTML = S.cuts.map((c,i) => '<span class="' + (i === S.cut ? 'cur' : c.sel >= 0 ? 'done' : '') + '"></span>').join('');
+  $('#shotLabel').textContent = '이 컷에 쓸 사진을 골라요 (' + cut.shots.length + '/' + MAX_SHOTS + ')';
+  const box = $('#shots'); box.innerHTML = '';
+  cut.shots.forEach((sh,i) => { const im = new Image(); im.src = sh.thumb; im.alt = (i+1)+'번째 사진'; if (i === cut.sel) im.className = 'sel'; im.onclick = () => { cut.sel = i; updateShoot(); }; box.appendChild(im); });
+  const full = cut.shots.length >= MAX_SHOTS;
+  $('#shoot').disabled = full || S.busy;
+  $('#shoot').textContent = full ? '최대 6장' : '📸 촬영';
+  $('#prevCut').disabled = S.cut === 0 || S.busy;
+  $('#nextCut').disabled = cut.sel < 0 || S.busy;
+  $('#nextCut').textContent = S.cut === CUTS-1 ? '완성하기 ✨' : '다음 컷 →';
+  $('#soundBtn').textContent = S.sound ? '🔊' : '🔇';
+  renderStickers();
+}
+function enterShoot(){
+  stage.style.aspectRatio = S.layout === '1x4' ? '4 / 3' : '3 / 4';
+  show('s-shoot'); updateShoot();
+}
+
+// ===== 결과 합성 =====
+function star(x,cx,cy,u){ x.fillRect(cx-u/2, cy-1.5*u, u, 3*u); x.fillRect(cx-1.5*u, cy-u/2, 3*u, u); }
+function roundPath(x,a,b,w,h,r){ x.beginPath(); if (x.roundRect) x.roundRect(a,b,w,h,r); else x.rect(a,b,w,h); }
+async function compose(){
+  try { await document.fonts.load('64px Galmuri11'); } catch(e){}
+  const th = THEMES[S.theme], W = 1200, pad = 60, gap = 36, foot = 230;
+  let cw, ch, cols, rows;
+  if (S.layout === '1x4'){ cols = 1; rows = 4; cw = W - 2*pad; ch = Math.round(cw*3/4); }
+  else { cols = 2; rows = 2; cw = (W - 2*pad - gap)/2; ch = Math.round(cw*4/3); }
+  const H = pad + rows*ch + (rows-1)*gap + foot;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  x.fillStyle = th.bg; x.fillRect(0,0,W,H);
+  S.cuts.forEach((cut,i) => {
+    const col = i % cols, row = Math.floor(i / cols);
+    const px = pad + col*(cw+gap), py = pad + row*(ch+gap);
+    const img = renderCut(cut.shots[cut.sel], cw, ch);
+    x.save(); roundPath(x,px,py,cw,ch,16); x.clip(); x.drawImage(img,px,py,cw,ch); x.restore();
+    x.strokeStyle = th.ink; x.lineWidth = 4; roundPath(x,px,py,cw,ch,16); x.stroke();
+  });
+  const fy = H - foot;
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillStyle = th.ink; x.font = '72px Galmuri11, monospace'; x.fillText('철학네컷', W/2, fy + 95);
+  const d = new Date();
+  x.fillStyle = th.sub; x.font = '30px Galmuri11, monospace'; x.fillText(d.getFullYear() + '.' + p2(d.getMonth()+1) + '.' + p2(d.getDate()), W/2, fy + 165);
+  x.fillStyle = th.deco; star(x, W/2 - 230, fy + 95, 8); star(x, W/2 + 230, fy + 95, 8);
+  S.canvas = c;
+  $('#preview').src = c.toDataURL('image/png');
+  S.blob = await new Promise(r => c.toBlob(r, 'image/png')); // 공유 버튼을 누른 순간 바로 쓸 수 있게 미리 준비
+}
+function fname(){ const d = new Date(); return '철학네컷_' + d.getFullYear() + p2(d.getMonth()+1) + p2(d.getDate()) + '_' + p2(d.getHours()) + p2(d.getMinutes()) + '.png'; }
+function savePng(){
+  if (!S.blob){ toast('잠시 후 다시 눌러 주세요'); return; }
+  const u = URL.createObjectURL(S.blob), a = document.createElement('a');
+  a.href = u; a.download = fname(); document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(u), 4000); toast('저장했어요!');
+}
+async function sharePng(){
+  if (!S.blob){ toast('잠시 후 다시 눌러 주세요'); return; }
+  const f = new File([S.blob], fname(), {type:'image/png'});
+  if (navigator.canShare && navigator.canShare({files:[f]})){
+    try { await navigator.share({files:[f], title:'철학네컷'}); } catch(e){}
+  } else { savePng(); toast('공유를 지원하지 않아 저장했어요'); }
+}
+function buildThemes(){
+  $('#themes').innerHTML = '';
+  Object.entries(THEMES).forEach(([k,t]) => {
+    const b = document.createElement('button'); b.className = 'chip' + (k === S.theme ? ' sel' : ''); b.textContent = t.name;
+    b.onclick = () => { S.theme = k; store('p4c_theme', k); buildThemes(); compose(); };
+    $('#themes').appendChild(b);
+  });
+}
+
+// ===== 초기화·이벤트 =====
+['confucius','socrates','buddha','kant','laozi'].forEach(id => { const im = new Image(); im.src = AV[id].url; im.alt = ''; $('#hero').appendChild(im); });
+PH.forEach(p => {
+  const b = document.createElement('button'); b.className = 'ph';
+  b.innerHTML = '<img src="' + AV[p.id].url + '" alt="">' + p.name;
+  b.onclick = () => addSticker(p.id);
+  $('#picker').appendChild(b);
+});
+try { const t = localStorage.getItem('p4c_theme'); if (THEMES[t]) S.theme = t; } catch(e){}
+function markLayout(){ document.querySelectorAll('.lay').forEach(el => el.classList.toggle('sel', el.dataset.lay === S.layout)); }
+document.querySelectorAll('.lay').forEach(el => el.onclick = () => { S.layout = el.dataset.lay; store('p4c_layout', S.layout); markLayout(); });
+markLayout();
+document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => show(b.dataset.back));
+
+$('#goLayout').onclick = () => { ac(); show('s-layout'); };
+$('#goShoot').onclick = () => {
+  const has = S.cuts.some(c => c.shots.length);
+  if (S.cutsLayout !== S.layout){
+    if (has && !confirm('배치를 바꾸면 찍은 사진이 지워져요. 계속할까요?')){ S.layout = S.cutsLayout; markLayout(); return; }
+    resetCuts();
+  }
+  enterShoot();
+};
+$('#shareLink').onclick = async () => {
+  const url = location.href.split('#')[0];
+  if (navigator.share){ try { await navigator.share({title:'철학네컷', text:'철학자와 함께 찍는 네컷 사진관', url}); } catch(e){} }
+  else { try { await navigator.clipboard.writeText(url); toast('링크를 복사했어요'); } catch(e){ toast(url); } }
+};
+$('#flipCam').onclick = () => { S.facing = S.facing === 'user' ? 'environment' : 'user'; stopCam(); startCam(); };
+$('#soundBtn').onclick = () => { S.sound = !S.sound; store('p4c_sound', S.sound ? '1' : '0'); updateShoot(); };
+$('#flipSt').onclick = () => { if (!S.selSt){ toast('반전할 철학자를 먼저 눌러 주세요'); return; } S.selSt.flip = !S.selSt.flip; placeEl(S.selSt); };
+$('#shoot').onclick = doShoot;
+$('#prevCut').onclick = () => { if (S.cut > 0){ S.cut--; S.selSt = null; updateShoot(); } };
+$('#nextCut').onclick = async () => {
+  if (S.cut < CUTS-1){ S.cut++; S.selSt = null; updateShoot(); window.scrollTo(0,0); return; }
+  S.blob = null; buildThemes(); show('s-result'); await compose();
+};
+$('#backShoot').onclick = () => enterShoot();
+$('#save').onclick = savePng;
+$('#share').onclick = sharePng;
+$('#restart').onclick = () => { if (confirm('처음부터 다시 찍을까요?')){ resetCuts(); show('s-layout'); } };
+document.addEventListener('visibilitychange', () => { if (document.hidden) stopCam(); else if ($('#s-shoot').classList.contains('on')) startCam(); });
+</script>
+</body>
+</html>
