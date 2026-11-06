@@ -460,7 +460,7 @@ async function doShoot(sec){
   const f = $('#flash'); f.style.opacity = 1; setTimeout(() => f.style.opacity = 0, 120);
   const shot = {photo:c, stickers:S.stickers.map(s => ({...s}))};
   shot.thumb = renderCut(shot, 240, 240/R).toDataURL('image/jpeg', .8);
-  S.shots.push(shot);
+  S.shots.push(shot); S.stickers = []; S.selSt = null; // 촬영 후 캐릭터 초기화
   S.busy = false; updateShoot();
 }
 
