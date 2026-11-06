@@ -1,0 +1,13 @@
+{
+  "name": "철학네컷",
+  "short_name": "철학네컷",
+  "description": "철학자 픽셀 캐릭터와 명언 말풍선으로 꾸미는 네컷 사진관",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#FFF6E5",
+  "theme_color": "#FFF6E5",
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

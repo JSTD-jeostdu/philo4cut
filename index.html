@@ -6,6 +6,20 @@
 <title>철학네컷</title>
 <meta name="description" content="철학자 픽셀 캐릭터와 함께 찍는 네컷 사진관">
 <meta name="theme-color" content="#FFF6E5">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="철학네컷">
+<meta property="og:title" content="철학네컷 📸">
+<meta property="og:description" content="철학자 픽셀 캐릭터와 명언 말풍선으로 꾸미는 네컷 사진관">
+<meta property="og:image" content="https://jstd-jeostdu.github.io/philo4cut/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://jstd-jeostdu.github.io/philo4cut/">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css">
 <style>
 :root{--bg:#FFF6E5;--ink:#2B2340;--sub:#7A6F8A;--accent:#FF7A59;--card:#fff;--line:#E9DCC4}
@@ -59,7 +73,7 @@ footer a{color:var(--sub)}
 .picker::-webkit-scrollbar{display:none}
 .ph{flex:0 0 auto;width:66px;background:var(--card);border:2px solid var(--line);border-radius:12px;padding:6px 2px;text-align:center;font-size:11px;cursor:pointer;color:var(--ink);font-family:inherit}
 .ph img{width:40px;image-rendering:pixelated;display:block;margin:0 auto 2px}
-.shots{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:8px 0;min-height:10px}
+.shots{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:8px 0;min-height:10px}
 .shots img{width:100%;border-radius:6px;border:3px solid transparent;cursor:pointer;display:block}
 .shots img.sel{border-color:var(--accent)}
 .label{font-size:13px;font-weight:700;margin-top:10px}
@@ -69,6 +83,16 @@ footer a{color:var(--sub)}
 .chip.sel{border-color:var(--accent)}
 #toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9;white-space:nowrap}
 #toast.on{opacity:1}
+.slots{display:grid;gap:8px;margin:10px auto}
+.slots.l14{grid-template-columns:1fr;max-width:52%}.slots.l22{grid-template-columns:1fr 1fr}
+.slot{position:relative;border:3px dashed var(--line);border-radius:10px;background:var(--card);display:flex;align-items:center;justify-content:center;color:var(--sub);font-weight:700;font-size:14px;overflow:hidden;cursor:pointer}
+.slot.full{border:3px solid var(--ink)}
+.slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.slot b,.pool b{position:absolute;left:6px;top:4px;background:var(--accent);color:#fff;border-radius:8px;padding:0 7px;font-size:13px}
+.pool{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
+.pool div{position:relative;cursor:pointer}
+.pool img{width:100%;display:block;border-radius:6px;border:3px solid transparent}
+.pool .used img{border-color:var(--accent);opacity:.55}
 .sticker img{animation:bob 1.5s ease-in-out infinite}
 @keyframes bob{50%{translate:0 -4%}}
 #qrModal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:10}
@@ -104,16 +128,24 @@ footer a{color:var(--sub)}
 </section>
 
 <section id="s-shoot" class="screen">
-  <div class="topbar"><button class="icon" id="flipCam" title="카메라 전환">🔄</button><b id="cutTitle">컷 1 / 4</b><button class="icon" id="soundBtn" title="효과음">🔊</button></div>
-  <div class="dots" id="dots"></div>
+  <div class="topbar"><button class="icon" id="flipCam" title="카메라 전환">🔄</button><b id="cutTitle">촬영 0 / 10</b><button class="icon" id="soundBtn" title="효과음">🔊</button></div>
   <div id="stage"><video id="video" playsinline muted autoplay></video><div id="flash"></div><div id="count" class="pixel"></div><div id="camMsg"></div></div>
   <p class="hint">철학자를 눌러 추가 · 드래그로 이동 · 두 손가락(또는 휠)로 크기 조절 · 밖으로 끌면 삭제<br>명언·한 줄·반전은 철학자를 누른 뒤 찍기 전에 정해요</p>
   <div class="picker" id="picker"></div>
   <div class="row tools"><button class="btn" id="flipSt">↔ 반전</button><button class="btn" id="quoteBtn">💬 명언 바꾸기</button><button class="btn" id="lineBtn">✏️ 한 줄</button></div>
   <div class="row shootrow"><button class="btn primary" id="shoot">📸 촬영</button><button class="btn" id="timerBtn">⏱ 3초</button><button class="btn" id="timerSw" aria-label="타이머 시간 바꾸기">⇄</button></div>
-  <div class="label" id="shotLabel">이 컷에 쓸 사진을 골라요 (0/6)</div>
+  <div class="label" id="shotLabel">4장 이상 찍으면 원하는 순서로 고를 수 있어요</div>
   <div class="shots" id="shots"></div>
-  <div class="row"><button class="btn" id="prevCut">← 이전</button><button class="btn primary" id="nextCut" disabled>다음 컷 →</button></div>
+  <div class="row"><button class="btn" id="backLayout">← 배치</button><button class="btn primary" id="toPick" disabled>사진 고르기 (0/4)</button></div>
+</section>
+
+<section id="s-pick" class="screen">
+  <div class="topbar"><button class="icon" id="backShoot2">←</button><b>4컷 고르기</b><span style="width:44px"></span></div>
+  <p class="hint">사진을 누른 순서대로 1~4번 칸에 들어가요 · 칸을 누르면 비워요</p>
+  <div id="slots" class="slots"></div>
+  <div class="label">찍은 사진</div>
+  <div id="pool" class="pool"></div>
+  <div class="row"><button class="btn" id="autoFill">찍은 순서로 채우기</button><button class="btn primary" id="toResult" disabled>완성하기 ✨</button></div>
 </section>
 
 <section id="s-result" class="screen">
@@ -135,7 +167,7 @@ footer a{color:var(--sub)}
 <script>
 'use strict';
 const $ = s => document.querySelector(s);
-const CUTS = 4, MAX_SHOTS = 6, MAX_ST = 3, BASE = 0.28; // BASE: 캐릭터 기본 너비(컷 너비 대비)
+const CUTS = 4, MAX_SHOTS = 10, MAX_ST = 3, BASE = 0.28; // BASE: 캐릭터 기본 너비(컷 너비 대비)
 
 // ===== 철학자 데이터 (2단계에서 스프라이트·말풍선 연결) =====
 const PH = [
@@ -276,7 +308,7 @@ try { S.sound = localStorage.getItem('p4c_sound') !== '0'; const l = localStorag
 function store(k,v){ try { localStorage.setItem(k,v); } catch(e){} }
 S.timer = 3; try { if (localStorage.getItem('p4c_timer') === '7') S.timer = 7; } catch(e){}
 let SID = 1;
-function resetCuts(){ S.cuts = Array.from({length:CUTS}, () => ({shots:[], sel:-1, stickers:[]})); S.cut = 0; S.selSt = null; S.cutsLayout = S.layout; }
+function resetCuts(){ S.shots = []; S.stickers = []; S.order = Array(CUTS).fill(null); S.selSt = null; S.cutsLayout = S.layout; }
 resetCuts();
 
 const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
@@ -330,8 +362,8 @@ function placeEl(s){
 }
 function markSel(){ stage.querySelectorAll('.sticker').forEach(el => el.classList.toggle('sel', !!S.selSt && el.dataset.id === String(S.selSt.id))); }
 function renderStickers(){
-  stage.querySelectorAll('.sticker').forEach(e => e.remove());
-  S.cuts[S.cut].stickers.forEach(s => {
+  stage.querySelectorAll('.sticker,.bubble').forEach(e => e.remove());
+  S.stickers.forEach(s => {
     const p = PH.find(q => q.id === s.pid);
     const el = document.createElement('div'); el.className = 'sticker'; el.dataset.id = s.id; el.dataset.pid = s.pid;
     const im = new Image(); im.src = AV[s.pid].urls[0]; im.alt = p.name; im.style.animationDelay = (-(s.id % 3)*0.5) + 's'; el.appendChild(im);
@@ -343,8 +375,8 @@ function renderStickers(){
   markSel();
 }
 function addSticker(pid){
-  const list = S.cuts[S.cut].stickers;
-  if (list.length >= MAX_ST){ toast('한 컷에 철학자는 3명까지예요'); return; }
+  const list = S.stickers;
+  if (list.length >= MAX_ST){ toast('철학자는 한 번에 3명까지예요'); return; }
   const pos = [[.78,.62],[.22,.62],[.5,.4]][list.length];
   const s = {id:SID++, pid, x:pos[0], y:pos[1], s:1, flip:false, q:0, line:''};
   list.push(s); S.selSt = s; renderStickers();
@@ -352,7 +384,7 @@ function addSticker(pid){
 function checkOut(s){
   if (!s) return;
   if (s.x < -0.02 || s.x > 1.02 || s.y < -0.02 || s.y > 1.02){
-    const list = S.cuts[S.cut].stickers; const i = list.indexOf(s); if (i >= 0) list.splice(i,1);
+    const list = S.stickers; const i = list.indexOf(s); if (i >= 0) list.splice(i,1);
     S.selSt = null; renderStickers(); toast('철학자를 뺐어요');
   }
 }
@@ -363,7 +395,7 @@ stage.addEventListener('pointerdown', e => {
   const el = e.target.closest('.sticker');
   if (P.size === 0){
     if (!el){ S.selSt = null; markSel(); return; }
-    act = S.cuts[S.cut].stickers.find(s => String(s.id) === el.dataset.id) || null;
+    act = S.stickers.find(s => String(s.id) === el.dataset.id) || null;
     S.selSt = act; markSel();
   }
   if (!act) return;
@@ -407,8 +439,7 @@ function renderCut(shot, W, H){
 // ===== 촬영 =====
 async function doShoot(sec){
   if (S.busy) return;
-  const cut = S.cuts[S.cut];
-  if (cut.shots.length >= MAX_SHOTS){ toast('한 컷에 최대 6장까지 찍을 수 있어요'); return; }
+  if (S.shots.length >= MAX_SHOTS){ toast('최대 10장까지 찍을 수 있어요'); return; }
   const v = $('#video');
   if (!S.stream || !v.videoWidth){ toast('카메라가 아직 준비되지 않았어요'); return; }
   S.busy = true; updateShoot(); ac();
@@ -427,29 +458,52 @@ async function doShoot(sec){
   x.drawImage(v, sx, sy, sw, sh, 0, 0, W, H);
   shutter();
   const f = $('#flash'); f.style.opacity = 1; setTimeout(() => f.style.opacity = 0, 120);
-  const shot = {photo:c, stickers:cut.stickers.map(s => ({...s}))};
+  const shot = {photo:c, stickers:S.stickers.map(s => ({...s}))};
   shot.thumb = renderCut(shot, 240, 240/R).toDataURL('image/jpeg', .8);
-  cut.shots.push(shot); cut.sel = cut.shots.length - 1;
+  S.shots.push(shot);
   S.busy = false; updateShoot();
 }
 
 function updateShoot(){
-  const cut = S.cuts[S.cut];
-  $('#cutTitle').textContent = '컷 ' + (S.cut+1) + ' / ' + CUTS;
-  $('#dots').innerHTML = S.cuts.map((c,i) => '<span class="' + (i === S.cut ? 'cur' : c.sel >= 0 ? 'done' : '') + '"></span>').join('');
-  $('#shotLabel').textContent = '이 컷에 쓸 사진을 골라요 (' + cut.shots.length + '/' + MAX_SHOTS + ')';
+  const n = S.shots.length, full = n >= MAX_SHOTS;
+  $('#cutTitle').textContent = '촬영 ' + n + ' / ' + MAX_SHOTS;
+  $('#shotLabel').textContent = n ? '찍은 사진 (' + n + '/' + MAX_SHOTS + ') · 사진을 누르면 지울 수 있어요' : '4장 이상 찍으면 원하는 순서로 고를 수 있어요';
   const box = $('#shots'); box.innerHTML = '';
-  cut.shots.forEach((sh,i) => { const im = new Image(); im.src = sh.thumb; im.alt = (i+1)+'번째 사진'; if (i === cut.sel) im.className = 'sel'; im.onclick = () => { cut.sel = i; updateShoot(); }; box.appendChild(im); });
-  const full = cut.shots.length >= MAX_SHOTS;
+  S.shots.forEach((sh,i) => { const im = new Image(); im.src = sh.thumb; im.alt = (i+1) + '번째 사진'; im.onclick = () => { if (confirm((i+1) + '번째 사진을 지울까요?')) deleteShot(i); }; box.appendChild(im); });
   $('#shoot').disabled = full || S.busy;
-  $('#shoot').textContent = full ? '최대 6장' : '📸 촬영';
+  $('#shoot').textContent = full ? '최대 10장' : '📸 촬영';
   $('#timerBtn').disabled = full || S.busy; $('#timerSw').disabled = S.busy;
   $('#timerBtn').textContent = '⏱ ' + S.timer + '초';
-  $('#prevCut').disabled = S.cut === 0 || S.busy;
-  $('#nextCut').disabled = cut.sel < 0 || S.busy;
-  $('#nextCut').textContent = S.cut === CUTS-1 ? '완성하기 ✨' : '다음 컷 →';
+  $('#toPick').disabled = n < CUTS || S.busy;
+  $('#toPick').textContent = n < CUTS ? '사진 고르기 (' + n + '/4)' : '사진 고르기 →';
   $('#soundBtn').textContent = S.sound ? '🔊' : '🔇';
   renderStickers();
+}
+function deleteShot(i){ S.shots.splice(i,1); S.order = S.order.map(o => o === i ? null : (o !== null && o > i ? o - 1 : o)); updateShoot(); }
+// ===== 4컷 고르기 =====
+function enterPick(){ S.order = S.order.map(o => (o !== null && o < S.shots.length) ? o : null); show('s-pick'); renderPick(); }
+function renderPick(){
+  const sl = $('#slots'); sl.className = 'slots ' + (S.layout === '1x4' ? 'l14' : 'l22'); sl.innerHTML = '';
+  S.order.forEach((o,k) => {
+    const d = document.createElement('div'); d.className = 'slot' + (o !== null ? ' full' : '');
+    d.style.aspectRatio = S.layout === '1x4' ? '4 / 3' : '3 / 4';
+    if (o !== null){ d.innerHTML = '<img src="' + S.shots[o].thumb + '" alt=""><b>' + (k+1) + '</b>'; d.onclick = () => { S.order[k] = null; renderPick(); }; }
+    else d.textContent = (k+1) + '번 칸';
+    sl.appendChild(d);
+  });
+  const pool = $('#pool'); pool.innerHTML = '';
+  S.shots.forEach((sh,i) => {
+    const k = S.order.indexOf(i), d = document.createElement('div');
+    if (k >= 0) d.className = 'used';
+    d.innerHTML = '<img src="' + sh.thumb + '" alt="">' + (k >= 0 ? '<b>' + (k+1) + '</b>' : '');
+    d.onclick = () => {
+      if (k >= 0) S.order[k] = null;
+      else { const e = S.order.indexOf(null); if (e < 0){ toast('칸을 눌러 먼저 비워 주세요'); return; } S.order[e] = i; }
+      renderPick();
+    };
+    pool.appendChild(d);
+  });
+  $('#toResult').disabled = S.order.includes(null);
 }
 function enterShoot(){
   stage.style.aspectRatio = S.layout === '1x4' ? '4 / 3' : '3 / 4';
@@ -466,7 +520,7 @@ function layoutL(){
   if (S.layout === '1x4'){ cols = 1; cw = W - 2*pad; ch = Math.round(cw*3/4); }
   else { cols = 2; cw = (W - 2*pad - gap)/2; ch = Math.round(cw*4/3); }
   const rows = CUTS / cols, H = pad + rows*ch + (rows-1)*gap + foot;
-  const cells = S.cuts.map((cut,i) => ({px:pad + (i%cols)*(cw+gap), py:pad + Math.floor(i/cols)*(ch+gap), cw, ch, shot:cut.shots[cut.sel]}));
+  const cells = S.order.map((o,i) => ({px:pad + (i%cols)*(cw+gap), py:pad + Math.floor(i/cols)*(ch+gap), cw, ch, shot:S.shots[o]}));
   return {W, H, foot, cells, th:THEMES[S.theme]};
 }
 function drawQR(x, a, b, size){
@@ -640,7 +694,7 @@ setInterval(() => {
     if (el._f !== f){ el._f = f; el.firstChild.src = a.urls[f]; }
   });
 }, 150);
-window.addEventListener('resize', () => { if ($('#s-shoot').classList.contains('on')) S.cuts[S.cut].stickers.forEach(placeEl); });
+window.addEventListener('resize', () => { if ($('#s-shoot').classList.contains('on')) S.stickers.forEach(placeEl); });
 try { const t = localStorage.getItem('p4c_theme'); if (THEMES[t]) S.theme = t; } catch(e){}
 function markLayout(){ document.querySelectorAll('.lay').forEach(el => el.classList.toggle('sel', el.dataset.lay === S.layout)); }
 document.querySelectorAll('.lay').forEach(el => el.onclick = () => { S.layout = el.dataset.lay; store('p4c_layout', S.layout); markLayout(); });
@@ -649,7 +703,7 @@ document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => show(b.d
 
 $('#goLayout').onclick = () => { ac(); show('s-layout'); };
 $('#goShoot').onclick = () => {
-  const has = S.cuts.some(c => c.shots.length);
+  const has = S.shots.length > 0;
   if (S.cutsLayout !== S.layout){
     if (has && !confirm('배치를 바꾸면 찍은 사진이 지워져요. 계속할까요?')){ S.layout = S.cutsLayout; markLayout(); return; }
     resetCuts();
@@ -680,12 +734,12 @@ $('#lineBtn').onclick = () => {
 $('#shoot').onclick = () => doShoot(0);
 $('#timerBtn').onclick = () => doShoot(S.timer);
 $('#timerSw').onclick = () => { S.timer = S.timer === 3 ? 7 : 3; store('p4c_timer', String(S.timer)); updateShoot(); toast('타이머 ' + S.timer + '초'); };
-$('#prevCut').onclick = () => { if (S.cut > 0){ S.cut--; S.selSt = null; updateShoot(); } };
-$('#nextCut').onclick = async () => {
-  if (S.cut < CUTS-1){ S.cut++; S.selSt = null; updateShoot(); window.scrollTo(0,0); return; }
-  S.blob = null; buildThemes(); show('s-result'); await compose();
-};
-$('#backShoot').onclick = () => enterShoot();
+$('#backLayout').onclick = () => show('s-layout');
+$('#toPick').onclick = enterPick;
+$('#backShoot2').onclick = () => enterShoot();
+$('#autoFill').onclick = () => { S.order = S.order.map((_,k) => k < S.shots.length ? k : null); renderPick(); };
+$('#toResult').onclick = async () => { if (S.order.includes(null)) return; S.blob = null; buildThemes(); show('s-result'); await compose(); };
+$('#backShoot').onclick = () => enterPick();
 $('#save').onclick = () => saveBlob(S.blob, 'png');
 $('#share').onclick = () => shareBlob(S.blob, 'png', 'image/png');
 $('#mkVideo').onclick = makeVideo;
