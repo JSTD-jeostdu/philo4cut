@@ -48,6 +48,7 @@ footer a{color:var(--sub)}
 .sticker.flip img{transform:scaleX(-1)}
 .sticker.sel{outline:2px dashed #fff;outline-offset:3px;border-radius:6px}
 .bubble{position:absolute;pointer-events:none;display:none}
+.shootrow #shoot{flex:2}.shootrow #timerBtn{flex:1;font-size:15px}.shootrow #timerSw{flex:0 0 48px;font-size:16px;padding:14px 0}
 .tools .btn{font-size:14px;padding:10px 4px;margin:4px 0;box-shadow:0 3px 0 var(--ink)}
 .sticker .tag{position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);background:rgba(0,0,0,.6);color:#fff;font-size:11px;padding:1px 6px;border-radius:8px;white-space:nowrap;pointer-events:none}
 #count{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:96px;color:#fff;text-shadow:0 4px 0 #000;pointer-events:none}
@@ -98,7 +99,7 @@ footer a{color:var(--sub)}
   <p class="hint">철학자를 눌러 추가 · 드래그로 이동 · 두 손가락(또는 휠)로 크기 조절 · 밖으로 끌면 삭제<br>명언·한 줄·반전은 철학자를 누른 뒤 찍기 전에 정해요</p>
   <div class="picker" id="picker"></div>
   <div class="row tools"><button class="btn" id="flipSt">↔ 반전</button><button class="btn" id="quoteBtn">💬 명언 바꾸기</button><button class="btn" id="lineBtn">✏️ 한 줄</button></div>
-  <button class="btn primary" id="shoot">📸 촬영</button>
+  <div class="row shootrow"><button class="btn primary" id="shoot">📸 촬영</button><button class="btn" id="timerBtn">⏱ 3초</button><button class="btn" id="timerSw" aria-label="타이머 시간 바꾸기">⇄</button></div>
   <div class="label" id="shotLabel">이 컷에 쓸 사진을 골라요 (0/6)</div>
   <div class="shots" id="shots"></div>
   <div class="row"><button class="btn" id="prevCut">← 이전</button><button class="btn primary" id="nextCut" disabled>다음 컷 →</button></div>
@@ -259,6 +260,7 @@ function geo(s, W, H){
 const S = {layout:'1x4', cutsLayout:null, theme:'cream', cut:0, cuts:[], facing:'user', sound:true, stream:null, selSt:null, busy:false, canvas:null, blob:null};
 try { S.sound = localStorage.getItem('p4c_sound') !== '0'; const l = localStorage.getItem('p4c_layout'); if (l === '1x4' || l === '2x2') S.layout = l; } catch(e){}
 function store(k,v){ try { localStorage.setItem(k,v); } catch(e){} }
+S.timer = 3; try { if (localStorage.getItem('p4c_timer') === '7') S.timer = 7; } catch(e){}
 let SID = 1;
 function resetCuts(){ S.cuts = Array.from({length:CUTS}, () => ({shots:[], sel:-1, stickers:[]})); S.cut = 0; S.selSt = null; S.cutsLayout = S.layout; }
 resetCuts();
@@ -389,16 +391,18 @@ function renderCut(shot, W, H){
 }
 
 // ===== 촬영 =====
-async function doShoot(){
+async function doShoot(sec){
   if (S.busy) return;
   const cut = S.cuts[S.cut];
   if (cut.shots.length >= MAX_SHOTS){ toast('한 컷에 최대 6장까지 찍을 수 있어요'); return; }
   const v = $('#video');
   if (!S.stream || !v.videoWidth){ toast('카메라가 아직 준비되지 않았어요'); return; }
   S.busy = true; updateShoot(); ac();
-  const cnt = $('#count'); cnt.style.display = 'flex';
-  for (let i = 3; i > 0; i--){ cnt.textContent = i; beep(660,.08); await wait(1000); }
-  cnt.style.display = 'none';
+  if (sec > 0){
+    const cnt = $('#count'); cnt.style.display = 'flex';
+    for (let i = sec; i > 0; i--){ cnt.textContent = i; beep(660,.08); await wait(1000); }
+    cnt.style.display = 'none';
+  }
   const [W,H] = capSize(), R = W/H;
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const x = c.getContext('2d');
@@ -425,6 +429,8 @@ function updateShoot(){
   const full = cut.shots.length >= MAX_SHOTS;
   $('#shoot').disabled = full || S.busy;
   $('#shoot').textContent = full ? '최대 6장' : '📸 촬영';
+  $('#timerBtn').disabled = full || S.busy; $('#timerSw').disabled = S.busy;
+  $('#timerBtn').textContent = '⏱ ' + S.timer + '초';
   $('#prevCut').disabled = S.cut === 0 || S.busy;
   $('#nextCut').disabled = cut.sel < 0 || S.busy;
   $('#nextCut').textContent = S.cut === CUTS-1 ? '완성하기 ✨' : '다음 컷 →';
@@ -550,7 +556,9 @@ $('#lineBtn').onclick = () => {
   if (v === null) return;
   s.line = clean(v); placeEl(s);
 };
-$('#shoot').onclick = doShoot;
+$('#shoot').onclick = () => doShoot(0);
+$('#timerBtn').onclick = () => doShoot(S.timer);
+$('#timerSw').onclick = () => { S.timer = S.timer === 3 ? 7 : 3; store('p4c_timer', String(S.timer)); updateShoot(); toast('타이머 ' + S.timer + '초'); };
 $('#prevCut').onclick = () => { if (S.cut > 0){ S.cut--; S.selSt = null; updateShoot(); } };
 $('#nextCut').onclick = async () => {
   if (S.cut < CUTS-1){ S.cut++; S.selSt = null; updateShoot(); window.scrollTo(0,0); return; }
