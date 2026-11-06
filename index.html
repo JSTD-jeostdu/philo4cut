@@ -47,6 +47,8 @@ footer a{color:var(--sub)}
 .sticker img{width:100%;display:block;image-rendering:pixelated;pointer-events:none;-webkit-user-drag:none}
 .sticker.flip img{transform:scaleX(-1)}
 .sticker.sel{outline:2px dashed #fff;outline-offset:3px;border-radius:6px}
+.bubble{position:absolute;pointer-events:none;display:none}
+.tools .btn{font-size:14px;padding:10px 4px;margin:4px 0;box-shadow:0 3px 0 var(--ink)}
 .sticker .tag{position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);background:rgba(0,0,0,.6);color:#fff;font-size:11px;padding:1px 6px;border-radius:8px;white-space:nowrap;pointer-events:none}
 #count{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:96px;color:#fff;text-shadow:0 4px 0 #000;pointer-events:none}
 #flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s}
@@ -93,9 +95,10 @@ footer a{color:var(--sub)}
   <div class="topbar"><button class="icon" id="flipCam" title="카메라 전환">🔄</button><b id="cutTitle">컷 1 / 4</b><button class="icon" id="soundBtn" title="효과음">🔊</button></div>
   <div class="dots" id="dots"></div>
   <div id="stage"><video id="video" playsinline muted autoplay></video><div id="flash"></div><div id="count" class="pixel"></div><div id="camMsg"></div></div>
-  <p class="hint">철학자를 눌러 추가 · 드래그로 이동 · 두 손가락(또는 휠)로 크기 조절 · 밖으로 끌면 삭제</p>
+  <p class="hint">철학자를 눌러 추가 · 드래그로 이동 · 두 손가락(또는 휠)로 크기 조절 · 밖으로 끌면 삭제<br>명언·한 줄·반전은 철학자를 누른 뒤 찍기 전에 정해요</p>
   <div class="picker" id="picker"></div>
-  <div class="row"><button class="btn" id="flipSt" style="flex:0 0 32%">↔ 반전</button><button class="btn primary" id="shoot">📸 촬영</button></div>
+  <div class="row tools"><button class="btn" id="flipSt">↔ 반전</button><button class="btn" id="quoteBtn">💬 명언 바꾸기</button><button class="btn" id="lineBtn">✏️ 한 줄</button></div>
+  <button class="btn primary" id="shoot">📸 촬영</button>
   <div class="label" id="shotLabel">이 컷에 쓸 사진을 골라요 (0/6)</div>
   <div class="shots" id="shots"></div>
   <div class="row"><button class="btn" id="prevCut">← 이전</button><button class="btn primary" id="nextCut" disabled>다음 컷 →</button></div>
@@ -110,7 +113,7 @@ footer a{color:var(--sub)}
   <button class="btn" id="restart">🔄 다시 찍기</button>
 </section>
 
-<footer>과학네컷에서 영감을 받음 · <a href="https://sciencessaem.com/science4cut/" target="_blank" rel="noopener">과학네컷 바로가기</a><br>ⓒ 철학네컷</footer>
+<footer>과학네컷에서 영감을 받음 · <a href="https://sciencessaem.com/science4cut/" target="_blank" rel="noopener">과학네컷 바로가기</a><br>ⓒ 철학네컷 · made by 정우쌤</footer>
 </div>
 <div id="toast"></div>
 
@@ -153,7 +156,7 @@ const THEMES = {
 };
 
 // ===== 임시 픽셀 캐릭터 (2단계에서 AI 생성 스프라이트로 교체) =====
-function drawAvatar(p){
+function drawAvatar(p, blink){
   const c = document.createElement('canvas'); c.width = 16; c.height = 20;
   const x = c.getContext('2d');
   const r = (a,b,w,h,col) => { x.fillStyle = col; x.fillRect(a,b,w,h); };
@@ -166,7 +169,7 @@ function drawAvatar(p){
   else if (p.curly){ r(4,2,8,2,p.hair); r(3,3,1,3,p.hair); r(12,3,1,3,p.hair); r(6,1,4,1,p.hair); }
   else { r(4,2,8,2,p.hair); r(3,3,1,5,p.hair); r(12,3,1,5,p.hair); }
   if (p.hat){ r(5,0,6,2,p.hat); r(4,2,8,1,p.hat); }
-  r(6,6,1,1,'#222'); r(9,6,1,1,'#222');
+  if (blink){ r(6,6,1,1,'#222'); r(9,6,1,1,'#222'); } else { r(6,5,1,2,'#222'); r(9,5,1,2,'#222'); }
   r(5,8,1,1,'#F4A3A3'); r(10,8,1,1,'#F4A3A3');
   if (p.beard){ if (p.short) r(6,9,4,2,p.beard); else { r(5,9,6,2,p.beard); r(6,11,4,2,p.beard); } }
   else r(7,9,2,1,'#B5654A');
@@ -176,7 +179,81 @@ function drawAvatar(p){
   return big;
 }
 const AV = {};
-PH.forEach(p => { const cv = drawAvatar(p); AV[p.id] = {canvas:cv, url:cv.toDataURL('image/png')}; });
+PH.forEach(p => { const f = [drawAvatar(p,false), drawAvatar(p,true)]; AV[p.id] = {frames:f, urls:f.map(c => c.toDataURL('image/png')), aspect:1.25, sprite:false}; });
+
+// AI 스프라이트: assets/characters/manifest.json 에 적힌 id의 PNG(가로로 이어 붙인 정사각형 프레임)를 불러와 교체
+async function loadSprites(){
+  try {
+    const r = await fetch('assets/characters/manifest.json', {cache:'no-cache'});
+    if (!r.ok) return;
+    const list = await r.json();
+    await Promise.all(list.map(id => new Promise(res => {
+      if (!AV[id]) return res();
+      const im = new Image();
+      im.onload = () => {
+        const n = Math.max(1, Math.round(im.width / im.height)), fw = im.width / n, frames = [];
+        for (let i = 0; i < n; i++){ const c = document.createElement('canvas'); c.width = fw; c.height = im.height; c.getContext('2d').drawImage(im, i*fw, 0, fw, im.height, 0, 0, fw, im.height); frames.push(c); }
+        AV[id] = {frames, urls:frames.map(c => c.toDataURL('image/png')), aspect:im.height/fw, sprite:true}; res();
+      };
+      im.onerror = res; im.src = 'assets/characters/' + id + '.png';
+    })));
+    buildAvatars(); if ($('#s-shoot').classList.contains('on')) renderStickers();
+  } catch(e){}
+}
+
+// ===== 말풍선 =====
+const BUB = 0.46; // 말풍선 기본 너비(컷 너비 대비)
+const BAD = ['씨발','시발','ㅅㅂ','병신','ㅂㅅ','좆','개새','지랄','fuck','shit'];
+function clean(t){ let o = String(t).trim().slice(0,20); BAD.forEach(w => { o = o.replace(new RegExp(w,'gi'), '♡'); }); return o; }
+let FONT_OK = 0;
+const BCACHE = new Map();
+function wrap(x, text, maxW){
+  const out = []; let cur = '';
+  text.split(' ').forEach(w => { const t = cur ? cur + ' ' + w : w; if (!cur || x.measureText(t).width <= maxW) cur = t; else { out.push(cur); cur = w; } });
+  if (cur) out.push(cur);
+  const res = [];
+  out.forEach(l => { while (l.length > 1 && x.measureText(l).width > maxW){ let i = l.length; while (i > 1 && x.measureText(l.slice(0,i)).width > maxW) i--; res.push(l.slice(0,i)); l = l.slice(i); } res.push(l); });
+  return res;
+}
+function makeBubble(s){
+  if (s.q < 0) return null;
+  const p = PH.find(q => q.id === s.pid), qt = p.quotes[s.q], side = s.x > 0.5 ? 'L' : 'R';
+  const key = [s.pid, s.q, s.line, side, FONT_OK].join('|');
+  if (BCACHE.has(key)) return BCACHE.get(key);
+  const W = 420, P = 24, U = 4, F = 'Galmuri11, monospace', ink = '#2B2340';
+  const m = document.createElement('canvas').getContext('2d');
+  m.font = '26px ' + F; const L1 = wrap(m, qt.t, W - 2*P);
+  m.font = '16px ' + F; const L2 = wrap(m, qt.s, W - 2*P);
+  let L3 = []; if (s.line){ m.font = '22px ' + F; L3 = wrap(m, '→ ' + s.line, W - 2*P); }
+  const bodyH = Math.round(P + L1.length*34 + 4 + L2.length*22 + (L3.length ? 8 + L3.length*30 : 0) + P - 6);
+  const H = bodyH + 5*U;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  const box = (col, k) => { x.fillStyle = col; const a = k, w = W - 2*k, h = bodyH - 2*k; x.fillRect(a + 2*U, a, w - 4*U, h); x.fillRect(a + U, a + U, w - 2*U, h - 2*U); x.fillRect(a, a + 2*U, w, h - 4*U); };
+  box(ink, 0); box('#FFFFFF', U);
+  const tx = side === 'L' ? W*0.78 : W*0.22, dir = side === 'L' ? 1 : -1;
+  for (let i = 0; i < 6; i++){
+    const w = (6 - i)*2*U, cx = tx + dir*i*U, y = bodyH - U + i*U;
+    x.fillStyle = ink; x.fillRect(cx - w/2 - U, y, w + 2*U, U);
+    if (i < 5){ x.fillStyle = '#FFFFFF'; x.fillRect(cx - w/2, y, w, U); }
+  }
+  x.textAlign = 'left'; x.textBaseline = 'top'; let y = P;
+  x.fillStyle = ink; x.font = '26px ' + F; L1.forEach(l => { x.fillText(l, P, y); y += 34; });
+  y += 4; x.fillStyle = '#7A6F8A'; x.font = '16px ' + F; L2.forEach(l => { x.fillText(l, P, y); y += 22; });
+  if (L3.length){ y += 8; x.fillStyle = '#E8502F'; x.font = '22px ' + F; L3.forEach(l => { x.fillText(l, P, y); y += 30; }); }
+  const r = {canvas:c, url:c.toDataURL('image/png'), tip:(tx + dir*5*U)/W, ar:H/W};
+  BCACHE.set(key, r); return r;
+}
+// 캐릭터·말풍선 위치 계산 (화면과 결과 이미지가 같은 식을 씀)
+function geo(s, W, H){
+  const a = AV[s.pid], w = BASE*s.s*W, h = w*a.aspect, cx = s.x*W, cy = s.y*H, g = {cx, cy, w, h};
+  const b = makeBubble(s);
+  if (b){
+    const bw = BUB*s.s*W, bh = bw*b.ar, tipX = cx + (s.x > 0.5 ? -1 : 1)*w*0.18, tipY = cy - h*0.42;
+    Object.assign(g, {b, bw, bh, bx:tipX - b.tip*bw, by:tipY - bh});
+  }
+  return g;
+}
 
 // ===== 상태 =====
 const S = {layout:'1x4', cutsLayout:null, theme:'cream', cut:0, cuts:[], facing:'user', sound:true, stream:null, selSt:null, busy:false, canvas:null, blob:null};
@@ -226,16 +303,25 @@ function stopCam(){ if (S.stream){ S.stream.getTracks().forEach(t => t.stop()); 
 // ===== 스티커 =====
 const stage = $('#stage');
 function stickerEl(s){ return stage.querySelector('.sticker[data-id="' + s.id + '"]'); }
-function placeEl(s){ const el = stickerEl(s); if (!el) return; el.style.left = (s.x*100)+'%'; el.style.top = (s.y*100)+'%'; el.style.width = (BASE*s.s*100)+'%'; el.classList.toggle('flip', s.flip); }
+function placeEl(s){
+  const el = stickerEl(s); if (!el) return;
+  el.style.left = (s.x*100)+'%'; el.style.top = (s.y*100)+'%'; el.style.width = (BASE*s.s*100)+'%'; el.classList.toggle('flip', s.flip);
+  const be = stage.querySelector('.bubble[data-id="' + s.id + '"]'); if (!be) return;
+  const g = geo(s, stage.clientWidth, stage.clientHeight);
+  if (!g.b){ be.style.display = 'none'; return; }
+  if (be.getAttribute('src') !== g.b.url) be.src = g.b.url;
+  be.style.display = 'block'; be.style.left = g.bx + 'px'; be.style.top = g.by + 'px'; be.style.width = g.bw + 'px';
+}
 function markSel(){ stage.querySelectorAll('.sticker').forEach(el => el.classList.toggle('sel', !!S.selSt && el.dataset.id === String(S.selSt.id))); }
 function renderStickers(){
   stage.querySelectorAll('.sticker').forEach(e => e.remove());
   S.cuts[S.cut].stickers.forEach(s => {
     const p = PH.find(q => q.id === s.pid);
-    const el = document.createElement('div'); el.className = 'sticker'; el.dataset.id = s.id;
-    const im = new Image(); im.src = AV[s.pid].url; im.alt = p.name; el.appendChild(im);
+    const el = document.createElement('div'); el.className = 'sticker'; el.dataset.id = s.id; el.dataset.pid = s.pid;
+    const im = new Image(); im.src = AV[s.pid].urls[0]; im.alt = p.name; el.appendChild(im);
     const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = p.name; el.appendChild(tag);
     stage.insertBefore(el, $('#flash'));
+    const be = new Image(); be.className = 'bubble'; be.dataset.id = s.id; be.alt = ''; stage.insertBefore(be, $('#flash'));
     placeEl(s);
   });
   markSel();
@@ -244,7 +330,7 @@ function addSticker(pid){
   const list = S.cuts[S.cut].stickers;
   if (list.length >= MAX_ST){ toast('한 컷에 철학자는 3명까지예요'); return; }
   const pos = [[.78,.62],[.22,.62],[.5,.4]][list.length];
-  const s = {id:SID++, pid, x:pos[0], y:pos[1], s:1, flip:false};
+  const s = {id:SID++, pid, x:pos[0], y:pos[1], s:1, flip:false, q:0, line:''};
   list.push(s); S.selSt = s; renderStickers();
 }
 function checkOut(s){
@@ -292,11 +378,13 @@ function renderCut(shot, W, H){
   const x = c.getContext('2d');
   x.drawImage(shot.photo, 0, 0, c.width, c.height);
   x.imageSmoothingEnabled = false;
-  shot.stickers.forEach(s => {
-    const w = BASE * s.s * c.width, h = w * 1.25;
-    x.save(); x.translate(s.x * c.width, s.y * c.height); if (s.flip) x.scale(-1,1);
-    x.drawImage(AV[s.pid].canvas, -w/2, -h/2, w, h); x.restore();
+  const gs = shot.stickers.map(s => [s, geo(s, c.width, c.height)]);
+  gs.forEach(([s,g]) => {
+    x.save(); x.translate(g.cx, g.cy); if (s.flip) x.scale(-1,1);
+    x.drawImage(AV[s.pid].frames[0], -g.w/2, -g.h/2, g.w, g.h); x.restore();
   });
+  x.imageSmoothingEnabled = true;
+  gs.forEach(([s,g]) => { if (g.b) x.drawImage(g.b.canvas, g.bx, g.by, g.bw, g.bh); });
   return c;
 }
 
@@ -402,13 +490,30 @@ function buildThemes(){
 }
 
 // ===== 초기화·이벤트 =====
-['confucius','socrates','buddha','kant','laozi'].forEach(id => { const im = new Image(); im.src = AV[id].url; im.alt = ''; $('#hero').appendChild(im); });
-PH.forEach(p => {
-  const b = document.createElement('button'); b.className = 'ph';
-  b.innerHTML = '<img src="' + AV[p.id].url + '" alt="">' + p.name;
-  b.onclick = () => addSticker(p.id);
-  $('#picker').appendChild(b);
-});
+function buildAvatars(){
+  $('#hero').innerHTML = ''; $('#picker').innerHTML = '';
+  ['confucius','socrates','buddha','kant','laozi'].forEach(id => { const im = new Image(); im.src = AV[id].urls[0]; im.alt = ''; $('#hero').appendChild(im); });
+  PH.forEach(p => {
+    const b = document.createElement('button'); b.className = 'ph';
+    b.innerHTML = '<img src="' + AV[p.id].urls[0] + '" alt="">' + p.name;
+    b.onclick = () => addSticker(p.id);
+    $('#picker').appendChild(b);
+  });
+}
+buildAvatars();
+loadSprites();
+if (document.fonts) document.fonts.load('26px Galmuri11').then(() => { FONT_OK = 1; BCACHE.clear(); if ($('#s-shoot').classList.contains('on')) renderStickers(); }).catch(() => {});
+// 대기 애니메이션: 임시 캐릭터는 눈 깜빡임, AI 스프라이트는 프레임 반복
+let TICK = 0;
+setInterval(() => {
+  TICK++;
+  stage.querySelectorAll('.sticker').forEach(el => {
+    const a = AV[el.dataset.pid]; if (!a) return;
+    const f = a.sprite ? Math.floor(TICK/2) % a.frames.length : (TICK % 16 === 15 ? 1 : 0);
+    if (el._f !== f){ el._f = f; el.firstChild.src = a.urls[f]; }
+  });
+}, 150);
+window.addEventListener('resize', () => { if ($('#s-shoot').classList.contains('on')) S.cuts[S.cut].stickers.forEach(placeEl); });
 try { const t = localStorage.getItem('p4c_theme'); if (THEMES[t]) S.theme = t; } catch(e){}
 function markLayout(){ document.querySelectorAll('.lay').forEach(el => el.classList.toggle('sel', el.dataset.lay === S.layout)); }
 document.querySelectorAll('.lay').forEach(el => el.onclick = () => { S.layout = el.dataset.lay; store('p4c_layout', S.layout); markLayout(); });
@@ -432,6 +537,19 @@ $('#shareLink').onclick = async () => {
 $('#flipCam').onclick = () => { S.facing = S.facing === 'user' ? 'environment' : 'user'; stopCam(); startCam(); };
 $('#soundBtn').onclick = () => { S.sound = !S.sound; store('p4c_sound', S.sound ? '1' : '0'); updateShoot(); };
 $('#flipSt').onclick = () => { if (!S.selSt){ toast('반전할 철학자를 먼저 눌러 주세요'); return; } S.selSt.flip = !S.selSt.flip; placeEl(S.selSt); };
+$('#quoteBtn').onclick = () => {
+  const s = S.selSt; if (!s){ toast('철학자를 먼저 눌러 주세요'); return; }
+  const n = PH.find(p => p.id === s.pid).quotes.length;
+  s.q = s.q + 1 >= n ? -1 : s.q + 1;
+  placeEl(s); toast(s.q < 0 ? '말풍선을 숨겼어요' : '명언 ' + (s.q+1) + ' / ' + n);
+};
+$('#lineBtn').onclick = () => {
+  const s = S.selSt; if (!s){ toast('철학자를 먼저 눌러 주세요'); return; }
+  if (s.q < 0){ s.q = 0; }
+  const v = prompt('명언 아래 덧붙일 내 한 줄 (20자 이내, 비우면 삭제)', s.line || '');
+  if (v === null) return;
+  s.line = clean(v); placeEl(s);
+};
 $('#shoot').onclick = doShoot;
 $('#prevCut').onclick = () => { if (S.cut > 0){ S.cut--; S.selSt = null; updateShoot(); } };
 $('#nextCut').onclick = async () => {
