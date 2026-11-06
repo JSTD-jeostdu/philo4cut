@@ -69,7 +69,17 @@ footer a{color:var(--sub)}
 .chip.sel{border-color:var(--accent)}
 #toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9;white-space:nowrap}
 #toast.on{opacity:1}
+.sticker img{animation:bob 1.5s ease-in-out infinite}
+@keyframes bob{50%{translate:0 -4%}}
+#qrModal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:10}
+#qrModal[hidden],#videoBox[hidden],.notice[hidden],.btn[hidden]{display:none}
+.qrbox{background:#fff;border-radius:18px;padding:20px;text-align:center;width:280px}
+.qrbox svg{width:220px;height:220px}
+.qrbox p{font-size:13px;color:var(--sub)}
+#vprev{width:100%;border-radius:12px;display:block;margin:10px 0;background:#000}
+.inapp{border-color:var(--accent);background:#FFF0EA}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js" defer></script>
 </head>
 <body>
 <div class="app">
@@ -80,7 +90,8 @@ footer a{color:var(--sub)}
   <div class="hero" id="hero"></div>
   <div class="notice">📷 카메라 사용을 허용해 주세요.<br>🔒 사진은 기기 밖으로 나가지 않아요. 저장 버튼을 누를 때만 내 폰에 저장돼요.<br>🤝 친구 사진은 동의를 받고 찍어요.</div>
   <button class="btn primary" id="goLayout">시작하기 📸</button>
-  <button class="btn" id="shareLink">🔗 앱 링크 공유</button>
+  <div class="notice inapp" id="inapp" hidden></div>
+  <div class="row"><button class="btn" id="shareLink">🔗 링크 공유</button><button class="btn" id="qrBtn">▦ QR 코드</button></div>
 </section>
 
 <section id="s-layout" class="screen">
@@ -109,14 +120,17 @@ footer a{color:var(--sub)}
   <div class="topbar"><button class="icon" id="backShoot">←</button><b>완성!</b><span style="width:44px"></span></div>
   <div class="themes" id="themes"></div>
   <img id="preview" alt="완성된 철학네컷">
-  <p class="hint">저장이 안 되면 사진을 길게 눌러 저장해 주세요</p>
+  <p class="hint">PNG는 사진, MP4는 캐릭터가 움직이는 3초 영상이에요<br>저장이 안 되면 사진을 길게 눌러 저장해 주세요</p>
   <div class="row"><button class="btn primary" id="save">💾 PNG 저장</button><button class="btn" id="share">📤 공유</button></div>
+  <button class="btn" id="mkVideo">🎬 움직이는 영상(MP4) 만들기</button>
+  <div id="videoBox" hidden><video id="vprev" playsinline muted loop autoplay></video><div class="row"><button class="btn primary" id="vsave">💾 영상 저장</button><button class="btn" id="vshare">📤 영상 공유</button></div></div>
   <button class="btn" id="restart">🔄 다시 찍기</button>
 </section>
 
 <footer>과학네컷에서 영감을 받음 · <a href="https://sciencessaem.com/science4cut/" target="_blank" rel="noopener">과학네컷 바로가기</a><br>ⓒ 철학네컷 · made by 정우쌤</footer>
 </div>
 <div id="toast"></div>
+<div id="qrModal" hidden><div class="qrbox"><div id="qrImg"></div><p>폰 카메라로 찍으면 철학네컷이 열려요</p><button class="btn" id="qrClose">닫기</button></div></div>
 
 <script>
 'use strict';
@@ -320,7 +334,7 @@ function renderStickers(){
   S.cuts[S.cut].stickers.forEach(s => {
     const p = PH.find(q => q.id === s.pid);
     const el = document.createElement('div'); el.className = 'sticker'; el.dataset.id = s.id; el.dataset.pid = s.pid;
-    const im = new Image(); im.src = AV[s.pid].urls[0]; im.alt = p.name; el.appendChild(im);
+    const im = new Image(); im.src = AV[s.pid].urls[0]; im.alt = p.name; im.style.animationDelay = (-(s.id % 3)*0.5) + 's'; el.appendChild(im);
     const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = p.name; el.appendChild(tag);
     stage.insertBefore(el, $('#flash'));
     const be = new Image(); be.className = 'bubble'; be.dataset.id = s.id; be.alt = ''; stage.insertBefore(be, $('#flash'));
@@ -445,46 +459,153 @@ function enterShoot(){
 // ===== 결과 합성 =====
 function star(x,cx,cy,u){ x.fillRect(cx-u/2, cy-1.5*u, u, 3*u); x.fillRect(cx-1.5*u, cy-u/2, 3*u, u); }
 function roundPath(x,a,b,w,h,r){ x.beginPath(); if (x.roundRect) x.roundRect(a,b,w,h,r); else x.rect(a,b,w,h); }
+const APP_URL = location.protocol.indexOf('http') === 0 ? location.origin + location.pathname : 'https://jstd-jeostdu.github.io/philo4cut/';
+function layoutL(){
+  const W = 1200, pad = 60, gap = 36, foot = 230;
+  let cw, ch, cols;
+  if (S.layout === '1x4'){ cols = 1; cw = W - 2*pad; ch = Math.round(cw*3/4); }
+  else { cols = 2; cw = (W - 2*pad - gap)/2; ch = Math.round(cw*4/3); }
+  const rows = CUTS / cols, H = pad + rows*ch + (rows-1)*gap + foot;
+  const cells = S.cuts.map((cut,i) => ({px:pad + (i%cols)*(cw+gap), py:pad + Math.floor(i/cols)*(ch+gap), cw, ch, shot:cut.shots[cut.sel]}));
+  return {W, H, foot, cells, th:THEMES[S.theme]};
+}
+function drawQR(x, a, b, size){
+  if (!window.qrcode) return;
+  const q = qrcode(0, 'M'); q.addData(APP_URL); q.make();
+  const n = q.getModuleCount(), m = 8, cell = (size - 2*m)/n;
+  x.fillStyle = '#FFFFFF'; roundPath(x, a, b, size, size, 10); x.fill();
+  x.fillStyle = '#2B2340';
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r,c)) x.fillRect(a + m + c*cell, b + m + r*cell, Math.ceil(cell), Math.ceil(cell));
+}
+// 움직이지 않는 층: 배경, 사진, 로고, 날짜, QR
+function drawBase(x, L){
+  const th = L.th;
+  x.fillStyle = th.bg; x.fillRect(0, 0, L.W, L.H);
+  L.cells.forEach(c => { x.save(); roundPath(x, c.px, c.py, c.cw, c.ch, 16); x.clip(); x.drawImage(c.shot.photo, c.px, c.py, c.cw, c.ch); x.restore(); });
+  const fy = L.H - L.foot, d = new Date();
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillStyle = th.ink; x.font = '72px Galmuri11, monospace'; x.fillText('철학네컷', L.W/2, fy + 95);
+  x.fillStyle = th.sub; x.font = '30px Galmuri11, monospace'; x.fillText(d.getFullYear() + '.' + p2(d.getMonth()+1) + '.' + p2(d.getDate()), L.W/2, fy + 165);
+  x.fillStyle = th.deco; star(x, L.W/2 - 230, fy + 95, 8); star(x, L.W/2 + 230, fy + 95, 8);
+  drawQR(x, L.W - 60 - 120, fy + 45, 120);
+}
+// 움직이는 층: 캐릭터(통통 튀기), 말풍선, 컷 테두리. t가 null이면 정지 상태
+function drawDyn(x, L, t){
+  L.cells.forEach(c => {
+    x.save(); roundPath(x, c.px, c.py, c.cw, c.ch, 16); x.clip();
+    const gs = c.shot.stickers.map((s,k) => [s, geo(s, c.cw, c.ch), k]);
+    x.imageSmoothingEnabled = false;
+    gs.forEach(([s,g,k]) => {
+      const bob = t == null ? 0 : -Math.abs(Math.sin(t*Math.PI/0.75 + k*0.9)) * g.h * 0.04;
+      x.save(); x.translate(c.px + g.cx, c.py + g.cy + bob); if (s.flip) x.scale(-1,1);
+      x.drawImage(AV[s.pid].frames[0], -g.w/2, -g.h/2, g.w, g.h); x.restore();
+    });
+    x.imageSmoothingEnabled = true;
+    gs.forEach(([s,g]) => { if (g.b) x.drawImage(g.b.canvas, c.px + g.bx, c.py + g.by, g.bw, g.bh); });
+    x.restore();
+    x.strokeStyle = L.th.ink; x.lineWidth = 4; roundPath(x, c.px, c.py, c.cw, c.ch, 16); x.stroke();
+  });
+}
 async function compose(){
   try { await document.fonts.load('64px Galmuri11'); } catch(e){}
-  const th = THEMES[S.theme], W = 1200, pad = 60, gap = 36, foot = 230;
-  let cw, ch, cols, rows;
-  if (S.layout === '1x4'){ cols = 1; rows = 4; cw = W - 2*pad; ch = Math.round(cw*3/4); }
-  else { cols = 2; rows = 2; cw = (W - 2*pad - gap)/2; ch = Math.round(cw*4/3); }
-  const H = pad + rows*ch + (rows-1)*gap + foot;
-  const c = document.createElement('canvas'); c.width = W; c.height = H;
-  const x = c.getContext('2d');
-  x.fillStyle = th.bg; x.fillRect(0,0,W,H);
-  S.cuts.forEach((cut,i) => {
-    const col = i % cols, row = Math.floor(i / cols);
-    const px = pad + col*(cw+gap), py = pad + row*(ch+gap);
-    const img = renderCut(cut.shots[cut.sel], cw, ch);
-    x.save(); roundPath(x,px,py,cw,ch,16); x.clip(); x.drawImage(img,px,py,cw,ch); x.restore();
-    x.strokeStyle = th.ink; x.lineWidth = 4; roundPath(x,px,py,cw,ch,16); x.stroke();
-  });
-  const fy = H - foot;
-  x.textAlign = 'center'; x.textBaseline = 'middle';
-  x.fillStyle = th.ink; x.font = '72px Galmuri11, monospace'; x.fillText('철학네컷', W/2, fy + 95);
-  const d = new Date();
-  x.fillStyle = th.sub; x.font = '30px Galmuri11, monospace'; x.fillText(d.getFullYear() + '.' + p2(d.getMonth()+1) + '.' + p2(d.getDate()), W/2, fy + 165);
-  x.fillStyle = th.deco; star(x, W/2 - 230, fy + 95, 8); star(x, W/2 + 230, fy + 95, 8);
-  S.canvas = c;
+  const L = layoutL();
+  const base = document.createElement('canvas'); base.width = L.W; base.height = L.H; drawBase(base.getContext('2d'), L);
+  const c = document.createElement('canvas'); c.width = L.W; c.height = L.H;
+  const x = c.getContext('2d'); x.drawImage(base, 0, 0); drawDyn(x, L, null);
+  S.L = L; S.base = base; S.canvas = c; S.vblob = null;
+  $('#videoBox').hidden = true; $('#mkVideo').hidden = false;
   $('#preview').src = c.toDataURL('image/png');
   S.blob = await new Promise(r => c.toBlob(r, 'image/png')); // 공유 버튼을 누른 순간 바로 쓸 수 있게 미리 준비
 }
-function fname(){ const d = new Date(); return '철학네컷_' + d.getFullYear() + p2(d.getMonth()+1) + p2(d.getDate()) + '_' + p2(d.getHours()) + p2(d.getMinutes()) + '.png'; }
-function savePng(){
-  if (!S.blob){ toast('잠시 후 다시 눌러 주세요'); return; }
-  const u = URL.createObjectURL(S.blob), a = document.createElement('a');
-  a.href = u; a.download = fname(); document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(u), 4000); toast('저장했어요!');
+function fname(ext){ const d = new Date(); return '철학네컷_' + d.getFullYear() + p2(d.getMonth()+1) + p2(d.getDate()) + '_' + p2(d.getHours()) + p2(d.getMinutes()) + '.' + ext; }
+function saveBlob(blob, ext){
+  if (!blob){ toast('잠시 후 다시 눌러 주세요'); return; }
+  const u = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = u; a.download = fname(ext); document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(u), 8000); toast('저장했어요!');
 }
-async function sharePng(){
-  if (!S.blob){ toast('잠시 후 다시 눌러 주세요'); return; }
-  const f = new File([S.blob], fname(), {type:'image/png'});
+async function shareBlob(blob, ext, type){
+  if (!blob){ toast('잠시 후 다시 눌러 주세요'); return; }
+  const f = new File([blob], fname(ext), {type});
   if (navigator.canShare && navigator.canShare({files:[f]})){
     try { await navigator.share({files:[f], title:'철학네컷'}); } catch(e){}
-  } else { savePng(); toast('공유를 지원하지 않아 저장했어요'); }
+  } else { saveBlob(blob, ext); toast('공유를 지원하지 않아 저장했어요'); }
+}
+
+// ===== MP4 영상 (720×1280, 3초, 30fps) =====
+const VW = 720, VH = 1280, FPS = 30, SECS = 3;
+let MUXER_P = null;
+function loadMuxer(){
+  if (window.Mp4Muxer) return Promise.resolve();
+  if (!MUXER_P) MUXER_P = new Promise((res, rej) => {
+    const sc = document.createElement('script'); sc.src = 'https://cdn.jsdelivr.net/npm/mp4-muxer@5.2.1/build/mp4-muxer.js';
+    sc.onload = res; sc.onerror = () => { MUXER_P = null; rej(new Error('muxer')); }; document.head.appendChild(sc);
+  });
+  return MUXER_P;
+}
+function videoFrame(x, t){
+  const L = S.L, m = 40, sc = Math.min((VW - 2*m)/L.W, (VH - 2*m)/L.H), ox = (VW - L.W*sc)/2, oy = (VH - L.H*sc)/2;
+  x.setTransform(1,0,0,1,0,0); x.fillStyle = L.th.bg; x.fillRect(0, 0, VW, VH);
+  x.setTransform(sc,0,0,sc,ox,oy); x.imageSmoothingEnabled = true; x.drawImage(S.base, 0, 0); drawDyn(x, L, t);
+  x.setTransform(1,0,0,1,0,0);
+}
+async function encodeWebCodecs(c, x, prog){
+  await loadMuxer();
+  let cfg = null;
+  for (const codec of ['avc1.4d0028','avc1.42002a','avc1.640028']){
+    const t = {codec, width:VW, height:VH, bitrate:4000000, framerate:FPS};
+    try { if ((await VideoEncoder.isConfigSupported(t)).supported){ cfg = t; break; } } catch(e){}
+  }
+  if (!cfg) return null;
+  const muxer = new Mp4Muxer.Muxer({target:new Mp4Muxer.ArrayBufferTarget(), video:{codec:'avc', width:VW, height:VH}, fastStart:'in-memory'});
+  let err = null;
+  const enc = new VideoEncoder({output:(ch, meta) => muxer.addVideoChunk(ch, meta), error:e => { err = e; }});
+  enc.configure(cfg);
+  const N = FPS*SECS;
+  for (let i = 0; i < N; i++){
+    videoFrame(x, i/FPS);
+    const f = new VideoFrame(c, {timestamp:Math.round(i*1e6/FPS), duration:Math.round(1e6/FPS)});
+    enc.encode(f, {keyFrame:i % FPS === 0}); f.close();
+    while (enc.encodeQueueSize > 6) await wait(10);
+    if (i % 6 === 0){ prog(i/N); await wait(0); }
+    if (err) throw err;
+  }
+  await enc.flush(); enc.close();
+  if (err) throw err;
+  muxer.finalize();
+  return new Blob([muxer.target.buffer], {type:'video/mp4'});
+}
+async function encodeRecorder(c, x, prog){
+  if (!window.MediaRecorder || !c.captureStream) return null;
+  const type = ['video/mp4;codecs=avc1','video/mp4'].find(t => MediaRecorder.isTypeSupported(t));
+  if (!type) return null;
+  const st = c.captureStream(FPS), rec = new MediaRecorder(st, {mimeType:type, videoBitsPerSecond:4000000}), parts = [];
+  rec.ondataavailable = e => { if (e.data && e.data.size) parts.push(e.data); };
+  const done = new Promise(r => { rec.onstop = r; });
+  videoFrame(x, 0); rec.start();
+  const t0 = performance.now();
+  await new Promise(res => { const step = () => { const t = (performance.now() - t0)/1000; if (t >= SECS){ res(); return; } videoFrame(x, t); prog(t/SECS); requestAnimationFrame(step); }; requestAnimationFrame(step); });
+  rec.stop(); await done; st.getTracks().forEach(t => t.stop());
+  return parts.length ? new Blob(parts, {type:'video/mp4'}) : null;
+}
+async function makeVideo(){
+  const btn = $('#mkVideo');
+  if (S.vbusy || !S.L) return;
+  S.vbusy = true; btn.disabled = true;
+  const prog = p => { btn.textContent = '🎬 영상 만드는 중… ' + Math.round(p*100) + '%'; };
+  const c = document.createElement('canvas'); c.width = VW; c.height = VH;
+  const x = c.getContext('2d');
+  try {
+    let blob = null;
+    if (window.VideoEncoder && window.VideoFrame){ try { blob = await encodeWebCodecs(c, x, prog); } catch(e){ console.warn(e); blob = null; } }
+    if (!blob){ try { blob = await encodeRecorder(c, x, prog); } catch(e){ console.warn(e); blob = null; } }
+    if (!blob){ toast('이 브라우저는 영상 만들기를 지원하지 않아요'); return; }
+    S.vblob = blob;
+    const v = $('#vprev'); if (v.src) URL.revokeObjectURL(v.src);
+    v.src = URL.createObjectURL(blob); $('#videoBox').hidden = false; btn.hidden = true; v.play().catch(() => {});
+  } finally {
+    S.vbusy = false; btn.disabled = false; btn.textContent = '🎬 움직이는 영상(MP4) 만들기';
+  }
 }
 function buildThemes(){
   $('#themes').innerHTML = '';
@@ -565,8 +686,30 @@ $('#nextCut').onclick = async () => {
   S.blob = null; buildThemes(); show('s-result'); await compose();
 };
 $('#backShoot').onclick = () => enterShoot();
-$('#save').onclick = savePng;
-$('#share').onclick = sharePng;
+$('#save').onclick = () => saveBlob(S.blob, 'png');
+$('#share').onclick = () => shareBlob(S.blob, 'png', 'image/png');
+$('#mkVideo').onclick = makeVideo;
+$('#vsave').onclick = () => saveBlob(S.vblob, 'mp4');
+$('#vshare').onclick = () => shareBlob(S.vblob, 'mp4', 'video/mp4');
+$('#qrBtn').onclick = () => {
+  if (!window.qrcode){ toast('잠시 후 다시 눌러 주세요'); return; }
+  const q = qrcode(0, 'M'); q.addData(APP_URL); q.make();
+  $('#qrImg').innerHTML = q.createSvgTag(6, 2); $('#qrModal').hidden = false;
+};
+$('#qrClose').onclick = () => { $('#qrModal').hidden = true; };
+$('#qrModal').onclick = e => { if (e.target.id === 'qrModal') $('#qrModal').hidden = true; };
+// 인앱 브라우저 안내 (카카오톡·인스타그램 등)
+(function(){
+  const ua = navigator.userAgent || '';
+  if (!/KAKAOTALK|Instagram|FBAN|FBAV|NAVER\(inapp|Line\/|everytimeApp|DaumApps/i.test(ua)) return;
+  const b = $('#inapp'), url = location.href;
+  b.innerHTML = '⚠️ 앱 안의 브라우저에서는 카메라나 저장이 안 될 수 있어요.<br>Safari나 Chrome으로 열어 주세요.';
+  const btn = document.createElement('button'); btn.className = 'btn';
+  if (/KAKAOTALK/i.test(ua)){ btn.textContent = '🌐 외부 브라우저로 열기'; btn.onclick = () => { location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(url); }; }
+  else if (/Android/i.test(ua)){ btn.textContent = '🌐 Chrome으로 열기'; btn.onclick = () => { location.href = 'intent://' + url.replace(/^https?:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;end'; }; }
+  else { btn.textContent = '🔗 링크 복사'; btn.onclick = async () => { try { await navigator.clipboard.writeText(url); toast('링크를 복사했어요. Safari에 붙여 넣어 주세요'); } catch(e){ toast(url); } }; }
+  b.appendChild(btn); b.hidden = false;
+})();
 $('#restart').onclick = () => { if (confirm('처음부터 다시 찍을까요?')){ resetCuts(); show('s-layout'); } };
 document.addEventListener('visibilitychange', () => { if (document.hidden) stopCam(); else if ($('#s-shoot').classList.contains('on')) startCam(); });
 </script>
